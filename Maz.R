@@ -1,6 +1,35 @@
 library(tidyverse)
 library(stringr)
 library(yarrr)
+library(labelled)
+library(readr)
+
+# Link: source_url('https://github.com/Asafmazar/MazR/blob/master/Maz.R')
+
+#############################
+# Read variable labels from second line of .csv
+# Required libraries: tidyverse, labelled
+
+#############################
+
+read_csv_lab <- function(file) {
+  
+  df <- read_csv(file,
+                   skip = 3, header = f,
+                   col.names = read.csv(file,nrows=1,header=F)[1,])
+  
+  lab <- read.csv(file, skip = 1, nrows = 1, header = F)
+  
+  namlist <- list()
+  for (i in 1:length(names(df))) {
+    namlist[i] <- names(df)[i]
+    names(namlist)[i] <- lab[i]
+  }
+  
+  df <- set_variable_labels(df, namlist)
+  
+  return(df)
+}
 
 #############################
 # Dual density plot function
@@ -242,4 +271,4 @@ split.cor <- function(dat, iv1, iv2, dv, stat = "median",
   }
   
 }
-source_url
+
