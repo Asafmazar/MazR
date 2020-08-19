@@ -12,21 +12,16 @@ library(readr)
 
 #############################
 
-read_csv_lab <- function(file) {
+read_csv_qual <- function(file, skip = 3) {
   
   df <- read_csv(file,
-                   skip = 3, header = f,
-                   col.names = read.csv(file,nrows=1,header=F)[1,])
+                 skip = skip, 
+                 col_names = as_vector(read.csv(file,nrows=1,header=F)[1,]))
   
-  lab <- read.csv(file, skip = 1, nrows = 1, header = F)
+  lab <- remove_attributes(as_vector(read.csv(file, skip = 1, nrows = 1, header = F)[1,]),
+                           'names')
   
-  namlist <- list()
-  for (i in 1:length(names(df))) {
-    namlist[i] <- names(df)[i]
-    names(namlist)[i] <- lab[i]
-  }
-  
-  df <- set_variable_labels(df, namlist)
+  df <- df %>% set_variable_labels(.labels = lab)
   
   return(df)
 }
