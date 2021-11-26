@@ -6,6 +6,40 @@ library(readr)
 
 # Link: source_url('https://github.com/Asafmazar/MazR/blob/master/Maz.R')
 
+##################################
+# Correlation plot function
+##################################
+
+corelp <- function(cordat) {
+  plot(summary(cordat),
+       show_values = T, show_p = T,
+       show_legend = F,
+       digits = 2, size_text = 3)
+}
+
+#############################
+# Pre-Merge checks
+#############################
+
+pre_merge <- function(x, y) {
+  return(tibble(
+    xandy = length(union(x, y)),
+    xnoty = length(setdiff(x, y)),
+    ynotx = length(setdiff(y, x))
+  ) %>% 
+    pivot_longer(xandy:ynotx) %>% 
+    mutate(value_com = scales::comma(value),
+           prop = scales::percent(prop.table(value), accuracy = 1)
+    )
+  )
+}
+
+#############################
+# Mean-centering function
+#############################
+
+mc <- function(x) {return(x - mean(x, na.rm = T))}
+
 #############################
 # Read variable labels from second line of .csv
 # Required libraries: tidyverse, labelled
