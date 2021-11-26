@@ -3,8 +3,9 @@ library(stringr)
 library(yarrr)
 library(labelled)
 library(readr)
+library(devtools)
 
-# Link: source_url('https://github.com/Asafmazar/MazR/blob/master/Maz.R')
+#link source_url('https://raw.githubusercontent.com/Asafmazar/MazR/master/Maz.R')
 
 ##################################
 # Correlation plot function
