@@ -22,8 +22,9 @@ corelp <- function(cordat) {
 # Pre-Merge checks
 #############################
 
-pre_merge <- function(x, y) {
-  return(tibble(
+pre_merge <- function(x, y, show_ids = F) {
+
+  tb <- tibble(
     xandy = length(union(x, y)),
     xnoty = length(setdiff(x, y)),
     ynotx = length(setdiff(y, x))
@@ -32,14 +33,25 @@ pre_merge <- function(x, y) {
     mutate(value_com = scales::comma(value),
            prop = scales::percent(prop.table(value), accuracy = 1)
     )
-  )
+
+    ids <- list(
+      xandy = union(x, y),
+      xnoty = setdiff(x, y),
+      ynotx = setdiff(y, x)
+    )
+
+  return(list(summary = tb, ids = ids))
 }
 
 #############################
 # Mean-centering function
 #############################
 
-mc <- function(x) {return(x - mean(x, na.rm = T))}
+mc <- function(x, center = T, scale = F) {
+  if(center == T) {x <- x - mean(x, na.rm = T)}
+  if(scale == T) {return(x / sd(x, na.rm = T))}
+  return(x)
+}
 
 #############################
 # Read variable labels from second line of .csv
