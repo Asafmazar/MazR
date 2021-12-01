@@ -25,7 +25,7 @@ corelp <- function(cordat) {
 pre_merge <- function(x, y, show_ids = F) {
 
   tb <- tibble(
-    xandy = length(union(x, y)),
+    xandy = length(intersect(x, y)),
     xnoty = length(setdiff(x, y)),
     ynotx = length(setdiff(y, x))
   ) %>% 
@@ -35,7 +35,7 @@ pre_merge <- function(x, y, show_ids = F) {
     )
 
     ids <- list(
-      xandy = union(x, y),
+      xandy = intersect(x, y),
       xnoty = setdiff(x, y),
       ynotx = setdiff(y, x)
     )
@@ -48,8 +48,8 @@ pre_merge <- function(x, y, show_ids = F) {
 #############################
 
 mc <- function(x, center = T, scale = F) {
-  if(center == T) {x <- x - mean(x, na.rm = T)}
-  if(scale == T) {return(x / sd(x, na.rm = T))}
+  if(scale == T) {x <-  x / sd(x, na.rm = T)}
+  if(center == T) {return(x - mean(x, na.rm = T))}
   return(x)
 }
 
