@@ -1,0 +1,13 @@
+Package: mazR
+Type: Package
+Title: Compute mazR squared and print a turtle
+Version: 0.0.1.0
+Date: 2023-04-03
+Author: Asaf Mazar <hello@asafmazar.com>
+Description: This package provides two functions. The first returns mazR squared, which is just the squared Spearman correlation between the observed and fitted values for a given model.  The second is a tertile-turtle function that returns a turtle (and, optionally, a tertile).
+License: GPL-3
+Imports:
+    broom,
+    dplyr,
+    pewmethods
+RoxygenNote: 7.2.3
