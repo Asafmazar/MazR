@@ -7,15 +7,41 @@ library(devtools)
 
 #link source_url('https://raw.githubusercontent.com/Asafmazar/MazR/master/Maz.R')
 
-##################################
-# Correlation plot function
-##################################
+###################################
+# Pretty colors
+###################################
 
-corelp <- function(cordat) {
-  plot(summary(cordat),
-       show_values = T, show_p = T,
-       show_legend = F,
-       digits = 2, size_text = 3)
+pret_color <- function() {
+  cl_pink_l <- '#f58ee9'
+  cl_pink <- '#ef43dc'
+  cl_blue_l <- '#95b6ff'
+  cl_blue <- '#5086ff'
+  cl_turq_l <- '#73d1d4'
+  cl_turq <- '#17b3b7'
+  cl_green_l <- '#74d07f'
+  cl_green <- '#17b12b'
+  cl_red_l <- '#f89e9b'
+  cl_red <- '#f35e5a'
+  cl_lav <- '#E0B0FF'
+  cl_yellow <- '#FFDB58'
+  
+  cl_pal <- c(cl_pink_l, cl_pink, cl_blue_l, cl_blue, cl_turq_l, cl_turq,
+              cl_green_l, cl_green, cl_red_l, cl_red, cl_lav, cl_yellow)
+  
+  ps_blue <- '#2E7AC6'
+  ps_orange <- '#ED5432'
+  ps_lightblue <- '#5DC1FF'
+  ps_pink <- '#FE0065'
+  ps_yellow <- '#F9A124'
+  ps_purple <- '#6B6ECF'
+  ps_green <- '#57CE91'
+  
+  ps_pal <- c(ps_blue, ps_orange, ps_lightblue, ps_pink,
+              ps_yellow, ps_purple, ps_green)
+  
+  hex <- hue_pal()(9)
+  
+  show_col(c(cl_pal, ps_pal, hex))
 }
 
 #############################
@@ -43,15 +69,166 @@ pre_merge <- function(x, y, show_ids = F) {
   return(list(summary = tb, ids = ids))
 }
 
+##########################################
+# Turtle tertile function
+##########################################
+
+turtle <- function(x) {
+
+  cat("  _____     ____\n /      \\  |  o | \n|        |/ ___\\| \n|_________/     \n|_|_| |_|_|\n")
+    
+  quant <- quantile(x, c(0.33, 0.66))
+  
+  return(fct_case_when(
+    x < quant[1] ~ 'Low',
+    x < quant[2] ~ 'Medium',
+    x >= quant[2] ~ 'High'
+  ))
+}
+
+##########################################
+# Functions for lookup table recoding
+##########################################
+
+lookup <- function(dat_col, lookupdat, old_col, new_col) {
+  inds_dat <- match(dat_col, lookupdat[[old_col]])
+  dat_col[!is.na(inds_dat)] <- lookupdat[[new_col]][na.omit(inds_dat)]
+  return(dat_col)
+}
+
+#############################
+# Functions for using multilevel models in the specr package
+#############################
+
+# Random intercept model (only country as grouping variable)
+lmer_ri_1 <- function(formula, data,...) {
+  require(lme4)
+  require(broom.mixed)
+  formula <- paste(formula, "+ (1|country)")
+  lmer(formula, data)
+}
+
+# Including random slopes (only country as grouping variable)
+lmer_rs_1 <- function(formula, data,...) {
+  require(lme4)
+  require(broom.mixed)
+  slopevars <- unlist(strsplit(formula, " ~ "))[2]
+  formula <- paste0(formula, "+ (1 + ", slopevars, "|country)" )
+  lmer(formula, data)
+}
+
+# Random intercept model (lifeExp is nested in both countries and years)
+lmer_ri_2 <- function(formula, data,...) {
+  require(lme4)
+  require(broom.mixed)
+  slopevars <- unlist(strsplit(formula, " ~ "))[2]
+  formula <- paste0(formula, "+ (1|country) + (1|year)")
+  lmer(formula, data)
+}
+
+# Including random slopes (intercept and slopes are nested in both countries and years)
+lmer_rs_2 <- function(formula, data,...) {
+  require(lme4)
+  require(broom.mixed)
+  slopevars <- unlist(strsplit(formula, " ~ "))[2]
+  formula <- paste0(formula, "+ (1 + ", slopevars, "|country) + (", slopevars, "|year)" )
+  lmer(formula, data)
+}
+
 #############################
 # Mean-centering function
 #############################
 
 mc <- function(x, center = T, scale = F) {
-  if(scale == T) {x <-  x / sd(x, na.rm = T)}
-  if(center == T) {return(x - mean(x, na.rm = T))}
+  if(center == T) {x <- x - mean(x, na.rm = T)}
+  if(scale == 'std') {x <-  x / sd(x, na.rm = T)}
+  if(scale == 'gelman') {x <-  x / (2*(sd(x, na.rm = T)))}
+  
   return(x)
 }
+
+#############################
+# Filter flow
+#############################
+
+filter_flow <- function(dat, ..., na_fail = T, sequential = T) {
+  
+  conds <- enquos(...) # Enquote condition arguments
+  
+  # Create tibble to store results
+  
+  tib <- tibble(condition = character(length = length(conds)),
+                num_true = numeric(length = length(conds)),
+                num_false = numeric(length = length(conds))
+  )
+  
+  dat_all <- dat
+  
+  num = 1 # Counter
+  
+  for (i in conds) {
+    
+    tib[num, 'condition'] <- quo_name(i)
+    tib[num, 'num_true'] <- nrow(dat %>% filter(!!i))
+    
+    if (na_fail == F) {
+      tib[num, 'num_false'] <- nrow(dat %>% filter(!(!!i)))
+    } else if (na_fail == T) {
+      tib[num, 'num_false'] <- nrow(dat) - nrow(dat %>% filter(!!i))
+    }
+    
+    if (sequential == T) { # If require sequential filtering
+      dat <- dat %>% filter(!!i)
+    } else {}
+    
+    num <- num + 1
+  }
+  
+  tib <- rbind(tib, c(condition = 'Total',
+                      num_true = nrow(dat %>%
+                                        filter(!!!conds)),
+                      num_false = nrow(dat_all) - nrow(dat %>%
+                                                         filter(!!!conds))))
+  
+  for (n in (1:nrow(tib))) {
+    cat(paste0(tib[n, 'condition'], ':'),
+        'excluded', tib[n, 'num_false'] %>% as_vector(), '\n')
+    if (n == nrow(tib)) {
+      cat(paste0(tib[n, 'condition'], ':'),
+          'included', tib[n, 'num_true'] %>% as_vector(), '\n')
+    }
+  }
+  
+  return(list(summary = tib, final_data = dat))
+  
+}
+
+# ff <- filter_flow(delta, 
+#             duration < 300, 
+#             intro == 1)
+# 
+# ff$summary
+# ff$final_data
+
+#############################
+# ggplot violin plot boilerplate
+#############################
+
+ggplot(dat_sum, aes(x = , y =)) +
+  geom_violin(width = 0.5, fill = alpha('dodgerblue', 0.7)) +
+  geom_boxplot(width = 0.1, fill = 'white') + # Add boxplot (median and .25 + .75 percentiles)
+  labs(title = '', x = '', y = '',
+       caption = str_wrap('')) +
+  scale_x_discrete(breaks = NULL) +
+  scale_y_continuous(labels = ~ percent(., accuracy = 1),
+                     breaks = seq(0, 1, .1)) +
+  theme(panel.border = element_rect(fill = NA),
+        plot.caption=element_text(hjust = 0, size = 12)) + # Add panel border and left-align caption
+  easy_text_size(14)
+#stat_summary(fun.data=mean_sdl, fun.args = list(mult = 1),
+#             geom='crossbar', width = 0.1, fill = 'white') +
+#stat_summary(fun.data=mean_cl_normal, geom='crossbar', width = 0.25, fill = 'white') 
+#geom_dotplot(binaxis = 'y', stackdir='center', dotsize = .1, position = position_dodge(1)) #+ # Add dots
 
 #############################
 # Read variable labels from second line of .csv
